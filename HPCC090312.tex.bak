@@ -1,0 +1,402 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+% The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
+\usepackage{cite}
+\usepackage{amsmath, amssymb, amsfonts}
+\usepackage{subfigure}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{multirow}
+\usepackage{caption}
+\usepackage{diagbox}
+\usepackage{url}
+\usepackage{float}
+\usepackage{fancyhdr}
+\usepackage{threeparttable}
+
+\usepackage[noend]{algpseudocode}
+\usepackage{algorithmicx, algorithm}
+
+\usepackage{color}
+\usepackage{hyperref}
+\hypersetup{colorlinks, bookmarks, unicode}
+\usepackage{epstopdf}
+
+\usepackage{xargs}
+%\usepackage[pdftex,dvipsnames]{xcolor}
+\usepackage[colorinlistoftodos,prependcaption,textsize=tiny]{todonotes}
+\newcommandx{\unsure}[2][1=]{\todo[linecolor=red,backgroundcolor=red!25,bordercolor=red,#1]{#2}}
+\newcommandx{\improvement}[2][1=]{\todo[linecolor=blue,backgroundcolor=blue!25,bordercolor=blue,#1]{#2}}
+
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+\begin{document}
+\pagenumbering{roman}
+
+
+
+
+\title{Evolution and Heterogeneity of  Cloud Clusters:  Comparative Study Between Google and Alibaba Big Trace Data \\
+%{\footnotesize \textsuperscript{*}Note: %Sub-titles are not captured in Xplore and
+%should not be used}
+\thanks{This work is by supported by the National Key R\&D Program of China under Grant NO. 2017YFB0202004, the fund of the State Key Laboratory of Software Development Environment under Grant No. SKLSDE-2017ZX-10, and the National Science Foundation of China under Grant No. 61772053
+and No.61572377. Guangzhou Science and Technology Projects (Grant Nos. 201807010052 and 201610010092), Nansha Science and Technology Projects (Grant No. 2017GJ001)}
+}
+
+\makeatletter
+\newcommand{\linebreakand}{%
+  \end{@IEEEauthorhalign}
+  \hfill\mbox{}\par
+  \mbox{}\hfill\begin{@IEEEauthorhalign}
+}
+\makeatother
+
+ \author{
+ \IEEEauthorblockN {Li Ruan, Xiangrong Xu, and Limin Xiao}
+\IEEEauthorblockA{\textit{State Key Laboratory of  Software Development Environment} \\
+\textit{Beihang University}\\ Beijing, China \\ruanli@buaa.edu.cn}
+
+\linebreakand % <------------- \and with a line-break
+
+\IEEEauthorblockN{Feng Yuan, Yin Li}
+\IEEEauthorblockA{\textit{
+Institute of Software
+Application Technology} \\
+\textit{Guangzhou \&
+Chinese Academy of Sciences}\\
+Guangzhou, China \\
+yf@gz.iscas.ac.cn}
+
+\and
+
+\IEEEauthorblockN{Dong Dai}
+\IEEEauthorblockA{Department of Computer Science \\
+University of North
+Carolina at Charlotte\\
+Charlotte, NC, United
+States \\
+dong.dai@uncc.edu}
+}
+
+\maketitle
+
+\pagenumbering{arabic}
+\pagestyle{plain}
+
+
+\begin{abstract}
+ With  the  booming  of  the  scale  and  complexity  of  Cloud  infrastructure,  how  to  understand the  temporal  and  spacial  characteristics  of  cloud  computing  infrastructure in detail under real workloads becomes  an  increasing  challenge. The most notable characteristics are evolution and heterogeneity.  One challenge in learning from  the trace data  is that the traces have diversity and a trace analysis alone is insufficient to accurately prove the generality of a new technique, resulting in urgent requirements of comparative analysis of different traces. Another challenge is that the Cloud cluster trace is no doubt big multiview data now, resulting in difficulty in abstract views from tables.
+
+ This paper studies the evolution and heterogeneity of Cloud clusters by comparatively studying  the  two most representative valuable big traces of Google trace, which is the most popular trace,  and the Alibaba 2018 trace, which is the newest publicly released one. We first introduce a multiview based trace analysis framework. We then investigate the evolution and heterogeneity of cloud traces by characterizing how the jobs, tasks, machines and resources usage  are managed. Quantitative  comparative  findings and inferences are presented which verified the effectiveness of the proposed method. To the best of our knowledge, we are the first to perform a comparative quantitative empirical study on these two trace using a multi-view based approach. Our multifaceted analysis and new findings not only reveal insights that we believe are useful for system designers, IT practitioners and users  but also promote more  new researches on big trace data comparative analysis in large-scale clusters.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Google trace, Alibaba trace, big data analysis, Cloud computing
+\end{IEEEkeywords}
+\newcounter{Findingcounter}
+\section{Introduction}
+The last decade has witnessed a surge of interest and commercial usage in cloud computing which offers high scalability and flexibility to meet the diverse computing and storage requirements.  With the booming of the scale and complexity of Cloud infrastructure, how to effectively understanding the temporal and spacial state of cloud computing platform becomes an increasing interesting problem. The most notable characteristics are evolution and heterogeneity. For example, Barroso et al. \cite{Baroso2009CloudChallenges} presents four challenges to address the Cloud  characteristics: rapidly changing workloads, building balanced systems with imbalanced commodity components,
+curbing energy usage and maintaining high parallel efficiency in the presence of mismatches in performance and cost trends of hardware components. Addressing each challenge requires
+detailed understanding about \emph{how a cloud computing infrastructure
+is utilized under real workloads and what hidden information about the jobs, tasks, machines and resources usage are hidden in these traces} first.
+\subsection{Challenges and Problems}
+George Amvrosiadis, et al.\cite{George2018Diversity} have proposed and
+verified that one challenge in cluster workload traces analysis is that the traces have \emph{diversity} and a trace analysis alone is insufficient to accurately
+prove the generality of a new technique. Therefore, there is urgent  requirement to characterizing jobs, tasks, machines and resources usage by  comparative analysis studies on traces to help cluster operators identify system bottleneck and figure out solutions for optimizing system-level and application-level performance.
+
+On the other hand,  despite intense research and development in the areas of cluster trace datasets, such as FaceBook trace\cite{FacebookTrace}, taobao data set\cite{Ren2014WorkloadTaobao}, Nutanix1 private clouds trace\cite{cano2016characterizing}, etc.. Most traces are private while the publicly available cluster  big datasets remain relatively scarce\cite{George2018Diversity}. The two most representative  cloud computing dataset sources today are: the Google cluster trace (Google trace for short in the following) \cite{GoogleTraceWeb} which is collected in 2011 by Google and is the most popular trace by far\cite{George2018Diversity}; the Alibaba trace 2018 (Ali2018 for short in the following) \cite{AlibabaTraceWeb}  is by far the newest public Cloud platform trace released in December 2018 by one of the top three Chinese  Cloud platform providers called Alibaba.
+
+The third challenge is that the Cloud cluster trace, which contains temporal and spacial state information of the machines, systems and applications of large-scale clusters, is now no doubt in big  multiview data era. For example, according to our statistical analysis of these two traces, Google trace, a 29-day 41G trace, amounts 670 thousand jobs, 25 million tasks, and 1.4 billion entries. Ali2018, a 8-day 49G trace, amounts 4 million 200 thousand jobs, 14 million tasks and 5 billion 600 million entries.
+
+Unfortunately, although it is reported in \cite{George2018Diversity} that there are  more than 450 publications on Google traces\cite{gupta2017resource}\cite{zhang2016workload}\cite{peng2018multi} and some initial research work on Alibaba trace 2017 \cite{chen2018Alibabaworkload}, to the best of our knowledge, the published research on  the most newest Ali2018 has not been reported. Moreover, the research on the evolution and heterogeneity of  Cloud Clusters based on a comparative multiview study between  Google trace and Ali2018  still lacks.
+
+\subsection{Main Contributions}
+In this work, we develop a set of models, methods and algorithms  to address the challenges. The key contributions are highlighted as follows:
+\begin{itemize}
+        \item According to the published research, to the best of our knowledge, we are the first to perform a multi-view based comparative  empirical study on Google cluster and Alibaba cluster 2018.
+    \item We characterize the jobs, tasks, machines and resources usage through a comparative study and give multifaceted analysis. New findings reveal insights  that we believe are useful for system designers, IT practitioners and users working on cluster management systems and promote the big trace data analysis in large-scale clusters.
+\end{itemize}
+
+\subsection{Organization}
+The remainder of this paper is organized as follows:  Section \ref{Sec:relatedwork}  gives a broad overview of some related work.  We present a general multiview based cluster trace analysis framework to guide the comparative empirical study of Google Trace and Ali2018 Trace for multi-view trace data in Section \ref{sec:CasestudyProcessDesign}.
+The Global view, machine view, Jobs and tasks view based analysis especially from the resource usage, task execution and task failure  point, together with the new findings based on comparative study   are demonstrated in Section  \ref{Sec:casestudyfinds}. The paper is concluded in Section \ref{sec:Conclusion}.
+
+\section{Related Work}\label{Sec:relatedwork}
+Despite intense research and development in the areas of cluster trace datasets, such as FaceBook trace\cite{FacebookTrace}, taobao data set\cite{Ren2014WorkloadTaobao}, Nutanix1 private clouds trace\cite{cano2016characterizing}, Google trace and Alibaba trace, publicly available cluster workload big datasets remain relatively scarce\cite{George2018Diversity}. The two most representative  cloud computing dataset traces today are: the Google trace and Ali2018.
+
+ Reiss et al.\cite{reiss2012heterogeneity} proposed that the machines and workload in Google trace are heterogeneous. The authors of \cite{Minet2018Machine} focused on the resource configuration of the machine and the execution process of the job, but lacks analysis of the task. Md. Rasheduzzaman et al.\cite{rasheduzzaman2014task} used the k-means algorithm to cluster the jobs, indicating that more jobs are short-lived and low-memory. The above papers focus more on the workload of the system, but lack fine-grained analysis of resource utilization and job execution results. Chen et al.\cite{chen2014failure}and Jassas et al.\cite{jassas2018failure}
+studied the task failure in Google trace and analyze some reasons for the failure of the task. They pointed out that task failure may be related to the time sensitivity of the task, task priority, and task resource request. However, they did not pay specific attention to the ratio of CPU resource request to memory resource request, which will also affect the task completion rate.
+
+Although there are some analysis of Alibaba trace 2017 which is the older version of Ali2018, no one has analyzed Ali2018 yet.
+Wenyan Chen et al.\cite{chen2018Alibabaworkload} clustered and analyzed the workload of Alibaba trace 2017. Lu et al.\cite{Lu2017AlibabaImbalance} indicated that Alibaba trace 2017 imbalances exacerbate the complexity and challenges of cloud resource management, which can result in severe resource waste and low cluster utilization. However, Alibaba trace 2017 only contains 12 hours of cluster information and approximately 1.3k of machine information. However, Alibaba trace 2017 only contains 12 hours of cluster information and about 1.3k of machine information. Compared to the larger data size of Ali2018, Alibaba trace 2017's description of Alibaba cluster is not detailed enough to show some rules that need to be observed for a long time.
+
+Although there are many cloud trace analysis on Google trace, Ali2017 trace, Facebook trace, etc., their analysis are based on one trace.  George Amvrosiadis et al.\cite{George2018Diversity} proposed that we should pay attention to the diversity of the trace analysis. They compared four new traces to demonstrate the problem of the overfitting of the previous work to Google's dataset characteristics. Existing research does not investigated the Ali2018 which is from Chinese biggest cloud can reflects the newest evolution and heterogeneity of cloud trace. Few studies been performed to compare two traces derived from actual production infrastructures from the multiple views of machines, jobs, tasks, etc.
+
+\begin{table*}[htp]
+\centering
+\caption{Trace, machine and job statistics of Google trace and Ali2018 }
+\begin{tabular}{|c|c|c|c|}
+\hline
+View                                                                                      & Items                     & Google trace 2011               & Ali2018 2018       \\ \hline
+\multirow{6}{*}{\begin{tabular}[c]{@{}c@{}}Trace \\ overview\end{tabular}}                & Trace data size                     & 41G                             & 49G                      \\ \cline{2-4}
+                                                                                          & Trace sampling time                 & 29 days                         & 8 days                   \\ \cline{2-4}
+                                                                                          & Timestamp unit                      & Microsecond                     & Second                   \\ \cline{2-4}
+                                                                                          & Number of jobs                      & 670 thousand                    & 4.2 million              \\ \cline{2-4}
+                                                                                          & Number of task                      & 25 million                      & 14 million               \\ \cline{2-4}
+                                                                                          & Number of entries                   & 1.4 billion                     & 5.6 billion              \\ \hline
+\multirow{3}{*}{\begin{tabular}[c]{@{}c@{}}Machine\\ information\\ analysis\end{tabular}} & Number of machines                  & 12583                           & 4043                     \\ \cline{2-4}
+                                                                                          & Machine states                      & Add,\ Remove,\ Update               & Using,\ Import installing  \\ \cline{2-4}
+                                                                                          & Machine attribute                   & CPU,\ Memory capacity             & CPU,\ Memory,\ net capacity  \\ \hline
+\multirow{5}{*}{\begin{tabular}[c]{@{}c@{}}Job\\ analysis\end{tabular}}                & Job record form                     & There is a separate job table   & From the task table      \\ \cline{2-4}
+                                                                                          & Time sensitive task                 & Distinguish by scheduling class & Batch tasks,\ Online task \\ \cline{2-4}
+                                                                                          & Relationship between tasks in a job & Not recorded                    & Recorded by DAG          \\ \cline{2-4}
+                                                                                          & Task execution process              & Not recorded                    & One or more instances    \\ \cline{2-4}
+                                                                                          & Entries loss handling               & Virtual record                  & Unprocessed              \\ \hline
+User                                                                                      & Recorded user information           & Yes                             & No                       \\ \hline
+\end{tabular}
+\label{Table:GooAliDif}
+\end{table*}
+\begin{figure}[htp]
+\centerline{\includegraphics[width=8.5cm]{./eps/multiview.eps}}
+\caption{Multiview based trace data analysis.}
+\label{Fig:Multiview}
+\end{figure}
+\section{Case Study Process Design}\label{sec:CasestudyProcessDesign}
+We propose a general multiview based trace data analysis framework. A graphical illustration of the proposed framework is given in  Fig. \ref{Fig:Multiview} in Section \ref{sec:MultiviewFramework} and the multivew based trace analysis process is presented in Section  \ref{sec:MultiviewProcess} to facilitate the understanding of our comparative study.
+\subsection{Multiview based trace analysis framework }\label{sec:MultiviewFramework}
+The  cloud  cluster  trace  is  no  doubt  big  multiview data  now which contains implicit associations among jobs, tasks, resources, failures among trace tables . To investigate the  evolution and heterogeneity of the Cloud Cluster, how to organize such multiview data and abstract the features from the big trace data are the first obstacle.
+
+
+We propose a multiview based trace statistical analysis framework by using an example in Fig. \ref{Fig:Multiview}. Following this framework, we need to analyze the cluster trace based on its various tables, establish the mapping and abstract the feature of trace based on the mapping, formulate the global views and other sub views, and finally perform statistical analysis based on the views and give out the new findings.
+
+\subsection{Multiview based trace analysis Process }\label{sec:MultiviewProcess}
+Based on the framework in Fig. \ref{Fig:Multiview}, we now present the details of multivew based trace analysis process. The steps  are highlighted as the follows:
+\begin{enumerate}
+  \item  Analyze and compare the trace statistics and data structure based on the overall view.
+  \item Establish the views based on the trace features and expert knowledge. For example, in Google trace and Ali2018, machine, job, task, resource usage are the most important views for large-scale clusters.
+  \item Analyze the mapping relationship between the views and the trace tables. \label{Process: maprelationship}
+  \item Perform the data analysis based on the trace tables from the temporal and spatial views.\label{Process: dataanalysis}
+  \item Visualize the trace analysis data analysis results. \label{Process:visualizing}
+   \item Comparatively analyze the evolution and heterogeneity among different traces.
+  \item Analyze findings and give inferences.
+ \label{Process:findings}
+ \end{enumerate}
+
+Using Google trace and Ali2018 as an example, the analysis process results  will be shown in the following Section \ref{Sec:casestudyfinds}.
+
+\section{Case Study Findings and Results Analysis}\label{Sec:casestudyfinds}
+In this section, based on the framework and process in section \ref{sec:CasestudyProcessDesign}, we  first classify the data table of Google and Ali2018 based on alobal view in Section \ref{Sec:Globalview}.  Machine view, Job view and Task view based comparative analysis and new findings are introduced in the following sections.
+\subsection{Global view based data tables classification}\label{Sec:Globalview}
+
+Google trace is 41G before decompression. It contains 6 tables, \emph{machine events},  \emph{machine attributes}, \emph{job events}, \emph{task events}, \emph{task constraints}, \emph{task usage}. Ali2018 is 49G when uncompressed with 6 tables of \emph{machine meta}, \emph{machine usage}, \emph{container meta}, \emph{container usage}, \emph{batch task} and \emph{batch instance}.
+
+\begin{table*}[hbt]
+\centering
+\caption{Machine resource capacity configuration $CPU_{cap}$, $Mem_{cap}$) in Google trace \\ }
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+\diagbox{$CPU_{cap}$}{$Mem_{cap}$}&$[0,0.25)$&$[0.25,0.5)$&$[0.5,0.75)$&$[0.75,1]$&total\\
+\hline
+$0.25$&126 (1\%)&0&0&0&126(1\%)\\
+\hline
+$0.5$&3924 (31.17\%)&6732 (53.48\%)&1003 (7.97\%)& 5 (0.04\%)&11664 (92.66\%)\\
+\hline
+$1$&0&3 (0.02\%)&0&795 (6.32\%)&798 (6.34\%)\\
+\hline
+$total$&4050 (32.17\%)&6735 (53.50\%)&1003 (7.97\%)&800 (6.36\%)&12588 (100\%)\\
+\hline
+\end{tabular}
+\begin{tablenotes}
+\centering
+\item[1] ($CPU_{cap}$ denotes CPU Capacity and $Mem_{cap}$ denotes Memory Capacity)
+\end{tablenotes}
+\label{GooogleTraceCapacity}
+\end{table*}
+
+Based on our framework in Fig. \ref{Fig:Multiview}, we first classify the data structure of the tables in the Google trace and Ali2018 based on the views so as to establish the mapping relationship. Based on the classification results in See Table \ref{Table:GooAliDif}, some overall findings and inference from a global data view are summarized in the following as an example which we think is useful for further job and task scheduling, resource usage, etc.:
+
+\begin{itemize}
+  \item Google trace and Ali2018 have relatively same-scale of trace data size while Google trace  is nearly four times of sampling day Ali2018 with more fine-grained timestamp. We may infer that Google trace is somewhat better for those who care about investigate the longer-time system performance analysis based on the trace view.
+  \item  Because  Ali2018 has 4.2 million jobs and 14 million tasks, and Google has 670 thousand jobs and 1.4 billion tasks, we can infer that the number of tasks in each job (3.33 tasks per job) in Ali2018 is ten times smaller than that (37.31 tasks per job) in Google trace. Based on the above analysis, we can conclude that the jobs in Google is, averagely speaking, divided in to a more fine-grained smaller tasks during the execution.
+
+  \item Google trace has more than three times of machines than Ali2018.
+  \item From Ali2018,  the DAG relationship can be somewhat reconstructed while Google trace has not reported such relationship.
+  \item User information can not be revealed in Ali2018 while Google trace can do.
+\end{itemize}
+
+Besides the overall view based analysis, in the following section, we will investigation the evolution and heterogeneity of Clouds by comparatively characterizing their jobs, tasks, etc..
+
+\subsection{Analysis of the machine}\label{Sec:Analymachine}
+The machine is the foundation and key of the cluster. Analyzing the cluster trace from the view of the machine is the basis to understanding the resource configuration and update in the cluster, the assignment of jobs and tasks and other information.
+This section investigates the resource usage  information in the view of machines by the record of \emph{machine event}.
+
+\subsubsection{Machine configuration analysis}
+At the first step, we analyze the the difference of the configurations between Google trace and Ali2018.
+The resource configuration of 12,583 machines was recorded in Google trace. The CPU capacity of all machines in Google trace is normalized into three types: 0.25, 0.5 and 1. For the normalized memory capacity, we classified it into four types: [0, 0.25), [0.25, 0.5), [0.5, 0.75), [0.75, 1]. Next, through statistical analysis of the \emph{machine event} table, the distribution of the number of machines of the resource capacity is shown in Table \ref{GooogleTraceCapacity} and Fig. \ref{fig1}.
+
+\begin{figure}[htp]
+\centerline{\includegraphics[width=8cm,height=4.8cm]{eps/1.eps}}
+\caption{Machine record number distribution of various resource capacities in Google trace. Bubble size reflects the number of machines}
+\label{fig1}
+\end{figure}
+As can be seen from Table \ref{GooogleTraceCapacity}, in Google trace, the majority (92.66\%) of the machines are configured with the CPU capacity of 0.5. From the perspective of memory resources, the number of machines with memory resources in [0.25,0.5) is the highest, accounting for 53.48\%. We can conclude that in Google trace, on the one hand, the machine's CPU and memory capacity values are diverse, on the other hand, more than half of the machines have a relatively identical resource capacity configurations whose  CPU capacity is 0.5 and  memory capacity is [0.25,0.5).
+\begin{table}[htbp]
+\centering
+\caption{Homogeneous analysis of Google trace and Ali2018}
+\begin{tabular}{cccl}
+\hline
+\multicolumn{1}{|c|}{\diagbox{Trace}{Items}}              & \multicolumn{1}{c|}{CPU}        & \multicolumn{1}{c|}{Memory}                                                                                      & \multicolumn{1}{l|}{Homogeneous} \\ \hline
+\multicolumn{1}{|c|}{Google trace}  & \multicolumn{1}{c|}{0.25, 0.5, 1} & \multicolumn{1}{c|}{\begin{tabular}[c]{@{}c@{}}{[}0, 0.25), {[}0.25, 0.5)\\ {[}0.5,0.75), {[}0.75, 1{]}\end{tabular}} & \multicolumn{1}{c|}{No}          \\ \hline
+\multicolumn{1}{|c|}{Ali2018} & \multicolumn{1}{c|}{96 cores}   & \multicolumn{1}{c|}{100}                                                                                         & \multicolumn{1}{c|}{Yes}         \\ \hline
+\multicolumn{1}{l}{}                & \multicolumn{1}{l}{}            & \multicolumn{1}{l}{}                                                                                             &
+\end{tabular}
+\label{HeteroCompare}
+\end{table}
+
+To analyze the machine characteristics in Ali2018, we first compute the numbers of deduplicated  \emph{machine\_id} in table \emph{machine\_meta} and find that Ali2018 has a total of 4043 machines.
+Next, we focus on the question whether Ali2018 has a fine-grained resource management schema as Google trace does by analyzing the CPU's and memory's capacity in Ali2018.
+
+We choose the record \emph{mem\_size} as the memory capacity index, and the record \emph{cpu\_num} as the CPU capacity index . We find that every machine is configured with the CPU capacity of 96 cores and the normalized memory capacity of 100. i.e.,  each machine in Ali2018 is configured with the identical CPU and Memory capacity.
+
+The comparative machine configurations based on the above results are summarized in Table \ref{HeteroCompare}. From Table \ref{HeteroCompare} and the above comparative analysis, we can deduce  that the management of the CPU capacity and  the memory resource in Ali2018, which has the same resource capacity configuration, is more coarse-grained  than Google trace whose resource capacity configurations are diverse. i.e., Google trace is heterogeneous and Ali2018 is homogeneous in terms of resource capacity configurations.
+\begin{figure}[htbp]
+\centerline{\includegraphics[scale=0.4]{./eps/2.eps}}
+\caption{The event distribution map of each machine in Google trace.}
+\label{Fig:EventDistr}
+\end{figure}
+\begin{figure*}[htp]
+\centering     %%% not \center
+\subfigure[Frequency distribution of jobs for the specified number of tasks
+included in Google trace]{\label{GoogleJobDisFrequency}\includegraphics[width=8.1cm,height=5.1cm]{./eps/4_a_3_27.eps}}
+\subfigure[CDF for jobs with the specified number of tasks in Google trace]{\label{GoogleJobDisCDF}\includegraphics[width=8.5cm, height=5.3cm]{./eps/3b.eps}}
+\subfigure[Frequency distribution of jobs for the specified number of tasks
+included in Ali2018]{\label{AliJobDisFrequency}\includegraphics[width=8.3cm,height=5.1cm]{./eps/4_b_3_27.eps}}
+\subfigure[CDF for jobs with the specified number of tasks in Ali2018]{\label{AliJobDisCDF}\includegraphics[width=8.5cm,height=5.3cm]{./eps/3d.eps}}
+\caption{Google trace and Ali2018 job and task distribution diagram}
+\label{JobandTaskDistribution}
+\end{figure*}
+\subsubsection{Machine events}
+
+There are three main types of machine events in Google trace, namely \emph{Add}, \emph{Remove} and \emph{Update}, as shown in Fig. \ref{Fig:EventDistr}. The \emph{Add} event is when the machine joins the cluster and can perform the task. There are 21,443 \emph{Add} records in Google trace, far more than the other two types of records. Because at the beginning of the observation time, all the machines in the cluster will have one \emph{Add} record. Remove event refers to the machine failure or other reasons to exit the cluster. There are a total of 8957 Remove records in Google trace. The Update record is a change to an available resource on the machine, with a total of 7,380 records in trace.By analyzing the number of Add and Remove records, it can be concluded that some machines rejoin the cluster after being removed.
+
+In Ali2018, the machine has only two states, \emph{Using} and \emph{Import}. In almost all the records, the state of the machine is \emph{Using}, and only the machine numbered 2739 has produced 5 records with the state of $Import$. We speculate that the machine has a failure during the import and installation, which affects machine availability.
+
+{\bfseries Finding \stepcounter{Findingcounter}\theFindingcounter: Google trace has  more fine-grained resource  and event management mechanism than Ali2018.
+Google trace is heterogeneous and Ali2018 is homogeneous in terms of resource capacity configurations. There are three types of events in Google trace, which are \emph{Add}, \emph{Remove} and \emph{Update}. However, in Ali2018, the majority of entries, except for 5 entries, has single event type like \emph{Using}. We can infer that Google platform has a much preciser machine state change management approach than Ali2018.}
+
+\subsection{Jobs and tasks characteristic analysis}
+In both Google trace and Ali2018, jobs are divided into smaller tasks to perform. This section studies the distribution relationship between jobs and tasks in Google trace and Ali2018, the resource request of jobs.
+
+\subsubsection{The large and small jobs identification in terms of its tasks}
+Through the statistics of the tasks in the table \emph{task events}  of Google trace, we find that the size of the jobs in Google trace is quite different. Some jobs contain only one task, for example, the job with \emph{job ID} 15705910 in the table \emph{task\ events}, and some jobs contain tens of thousands of tasks, for example the Job with \emph{job ID}  6447253009 is composed of 90,050 tasks. Compared with Google trace, the size difference between the jobs in Ali2018 is smaller, for example the job numbered J1651717 with the largest amount of tasks only has 1002 tasks.
+
+Fig. \ref{JobandTaskDistribution} shows the number of jobs of various sizes in Google trace and Ali2018. As can be seen from the  Fig. \ref{GoogleJobDisFrequency} and Fig. \ref{GoogleJobDisCDF}, about 75\% of the jobs in Google trace are composed of only one task, and the jobs containing less than 500 tasks account for more than 98\% of the total number of jobs. From Fig. \ref{AliJobDisFrequency} and Fig. \ref{AliJobDisCDF}, we can see that, in Ali2018,  40\% jobs in the total of 14 million jobs has only one task , while  99.6\% jobs contain less than 30 tasks. i.e., the jobs in Ali2018 tends to be small jobs with small tasks. When scheduling jobs in a cluster, the feature that small jobs account for the majority should be fully considered to avoid affecting the overall scheduling efficiency.
+
+{\bfseries Finding \stepcounter{Findingcounter}\theFindingcounter: Most of the jobs in Google trace and Ali2018 contain only a few tasks. In Google Trace, about 98\% of jobs contain less than 500 tasks. Approximately 99.6\% of jobs contain less than 30 tasks in Ali2018.}
+
+\subsubsection{Resource requests}
+\begin{algorithm}
+\caption{Algorithm for calculating ($RatioCPU_{Ali}$ and $RatioCPU_{Google}$) of Ali2018 and Google trace}
+\label{alg:ratio cpu}
+\hspace*{0.02in}{\bf Input:}
+ $N$(the number of top jobs), CPU resource usage of jobs in Ali2018 and Google trace\\
+\hspace*{0.02in}{\bf Output:}
+$RatioCPU_{Ali}$ and $RatioCPU_{Google}$ of Ali2018 and Google trace
+\begin{algorithmic}[1]
+\State Sort the jobs in descending order by comparing the resource usage in Ali2018 and Google trace respectively
+\State Calculate the total CPU resource usage ($TotalCPU_{Ali}$ and $TotalCPU_{Google}$) of all jobs in Ali2018 and Google trace respectively
+\State Calculate the CPU usage ($TopCPU_{Ali}$ and $TopCPU_{Google}$) of top $N$ sorted jobs in Ali2018 and Google respectively
+\State  $RatioCPU_{Ali} = TopCPU_{Ali} / TotalCPU_{Ali}$ and $RatioCPU_{Google} = TopCPU_{Google} / TotalCPU_{Google}$
+\State \Return $RatioCPU$ of Ali2018 and Google trace
+\end{algorithmic}
+\end{algorithm}
+In Google trace, the CPU and memory usage status is recorded in the table \emph{task usage}\cite{reiss2011google}.  We use the following method to calculate the resource usage of the jobs in Google trace.
+\begin{figure}[htbp]
+\centerline{\includegraphics[width=8.5cm,height=6cm]{./eps/fig.eps}}
+\caption{Schematic diagram of Google trace resource calculation method}
+\label{Fig:algorithm fig}
+\end{figure}
+
+Suppose a job contains the $task\ num$  tasks, $T$ is a two-dimensional vector representing statistical time slices, and $T_i$ represents the time period of each time slice of $task_i$. $A$ is also a two-dimensional vector representing the resource usage of each time slice, and $A_i$ represents the resource usage of each time slice of $task_i$. When calculating the resource usage of $task_i$, $r_i$ is $A_i  \cdot  T_i$. For example, as shown in the Fig.\ref{Fig:algorithm fig}, The total resource usage of the task is the sum of the areas of the graphs. The total resource usage of the job in Google trace is the sum of the resource usage of all the tasks it contains.
+
+In Ali2018, the job is also divided into multiple tasks to execute, and each task will have multiple execution instances. Suppose a job in Ali2018 contains $n$ tasks, each task has $j_i$ instance, and the CPU resource request of each instance is $r_k$, then the total CPU resource request $R$ of the job is shown in Eq. \ref{Eq:TotalCPURequest}.
+This paper calculates the resource occupation of each job in Google trace and Ali2018, and draws the cumulative resource usage distribution map of the top 90,000 jobs in Google trace and the top 500,000 jobs in Ali2018.
+\begin{equation} \label{Eq:TotalCPURequest}
+     R = \sum\limits_{i = 1}^n {\sum\limits_{k = 1}^{{j_i}} {{r_k}} }
+\end{equation}
+\begin{table}[htbp]
+\centering
+\caption{Variable definition in Algorithm 2}
+\begin{tabular}{|c|c|}
+\hline
+Ali2018  & Variable interpretation
+\\ \hline
+$TotalMem$ & the memory usage of all the jobs in two traces                           \\ \hline
+$TopMem$    & the memory usage of top sorted jobs in two traces                        \\ \hline
+$TotalCPU$  & the CPU usage of all the jobs in in two traces                             \\ \hline
+$TopCPU$    & the CPU usage of top sorted jobs in two traces                          \\ \hline
+$RatioMem$  & top $n$ jobs memory usage / all the jobs memory usage\\ \hline
+$RatioCPU$ & top $n$ jobs CPU usage / all the jobs CPU usage    \\ \hline
+\end{tabular}
+\label{Table:Vardefine}
+\end{table}
+
+\begin{figure*}[htbp]
+\centering     %%% not \center
+\subfigure[ CPU usage and memory usage in Google trace]{
+\includegraphics[width=8.2cm,height=5.5cm]{./eps/4_a_new.eps}\label{Fig:MeminGoogle}}
+\subfigure[Top jobs occupying most CPU and memory in Ali2018 ]{\includegraphics[width=7.9cm,height=5.4cm]{./eps/4_b_new.eps}\label{Fig:JobAndCPUMeminAli}}
+\caption{Top jobs occupying most CPU and memory}
+\label{Fig:TopJobs}
+\end{figure*}
+\begin{figure*}[htbp]
+\centering     %%% not \center
+\subfigure[Finished/Submitted/Failed Tasks Time Series in Google trace ]{\label{Fig:submitedRatesGoo}\includegraphics[width=8.1cm,height=5.4cm]{./eps/8a.eps}}
+\subfigure[Finished/Submitted/Failed Tasks Time Series in Ali2018 trace]{\label{Fig:submitedRatesAli}\includegraphics[width=8.1cm,height=5.4cm]{./eps/8b.eps}}
+\caption{Minutely job submission rates for a given day. }
+\label{Fig:submitedRatesGooAli}
+\end{figure*}
+To be clearer, we first define some important notions as shown in the Table \ref{Table:Vardefine}. In addition, we let $N$ denote the number of top jobs. Then, for any $N$ that is less than the total number of jobs, we can calculate the ratio of the CPU resource usage of Top $N$ jobs to the CPU usage of all jobs ($RatioCPU$) in the trace through Algorithm \ref{alg:ratio cpu}. $RatioMem$ can also use a similar calculation method. After we have calculated the $RatioMem$ and $RatioCPU$ corresponding to each $N$ in Ali2018 and Google trace, it's simple to plot the cumulative distribution (Fig. \ref{Fig:TopJobs}) of CPU and memory resource usage. In Fig. \ref{Fig:TopJobs},  the horizontal axis is  $N$ and the vertical axis is the resource usage.
+
+As shown in Fig. \ref{Fig:TopJobs}, the top 50,000 jobs consume more than 99.5\% of the resources, and the other jobs with more than 500,000 occupy less than 0.5\% of the resources, that is, the jobs with less than 10\% consume more than 99.5\% of the resources in Google trace. In Ali2018, out of a total of 4.2 million jobs, the first 500,000 jobs occupy more than 90\% of CPU resources and memory resources.
+
+It should be noted that in both types of trace, the memory resources are more job-intensive than the CPU resources. In other words, as we can see from Fig. \ref{Fig:MeminGoogle} and Fig. \ref{Fig:JobAndCPUMeminAli}, the red line representing memory usage is always above the blue line representing the CPU usage. i.e., for a given $N$, we can find that $RatioMem$ $\ge$ $RatioMem$ for both of these two traces.
+
+{\bfseries Finding \stepcounter{Findingcounter}\theFindingcounter: The usage for job resources in Google trace and Ali2018 is subject to pareto's law, that is, a small number of large jobs occupy the vast majority of resources.The memory resources are more job-intensive than the CPU resources in both Google trace and Ali2018}
+
+\subsection{Task execution analysis}
+In Google trace and Ali2018, hundreds of jobs and tasks are submitted, scheduled and executed every minute. Mining and analyzing the information hidden in this execution process is a focus of this section.
+
+We investigate the workload status of Google trace and Ali2018 by analyzing job submission, completion, failure and other job event information. We mainly analyze the daily patterns of workloads varied according to different time and the resource utility.
+
+\subsubsection{Daily patterns of workloads}
+Fig.\ref{Fig:submitedRatesGooAli} shows the number of tasks submitted by Google trace and Ali2018 within 24 hours. As can be seen from  Fig. \ref{Fig:submitedRatesGooAli}, the number of job submissions of Google trace was significantly higher from 1am to 11am than that of other time periods, when Google cluster was supposed to start processing batch tasks. The number of job submissions at 2am in Google trace is 5 times the number of job submissions at 2 pm. We can assume that the workload on Google trace is uneven at different times on the same day. Ali2018 doesn't give a specific start time, so we can't tell the real time of a timestamp. The number of job submissions of Ali2018 remained at a high level for 9 hours in 24 hours, while the number of job submissions in the rest of the time was less. We can conclude that the workload of Ali2018 is also uneven. In view of the uneven workload, it is recommended that Google cluster move some batch jobs to the idle time of the system, such as 13:00 to 15:00. In addition, it is suggested that when scheduling batch jobs, Ali2018 should avoid some jobs during busy periods to make reasonable use of resources.
+
+{\bfseries Finding \stepcounter{Findingcounter}\theFindingcounter: The workloads of Google trace and Alibaba Trace vary greatly at different times of the day. The number of task submissions in Google trace during busy hours is 5 times that of the idle time period. Ali2018 workload remained at a high level for 9 hours in 24 hours}
+
+\subsubsection{Task failure rate and task submission trend}\label{Sec:failure}
+It can be seen from Fig. \ref{Fig:FailedRation}  that the number of job submissions, the number of job failures and the change trend of the job failure rate curve are consistent. For example, from the $4_{th}$ day to the $6_{th}$ day, all three are on the decline; from the $6_{th}$  day to the $10_{th}$  day, they are on the rise; from the $10_{th}$  day to the $10_{th}$  day, they are on the decline. It is worth noting that the curve fluctuation range of the job failure rate is much larger than that of the job submission number curve, so we can speculate that the job failure rate is sensitive to the change of job submission number. If Google adjusts the machine in time to increase the available resources after the number of submitted jobs increases, the number of failed jobs will be greatly reduced.
+
+{\bfseries Finding \stepcounter{Findingcounter}\theFindingcounter: the number of job failures and job submissions in Google trace are consistent, and the failure rate of jobs is similar to the trend of job submissions.}
+
+
+\begin{figure}[tbp]
+\centerline{\includegraphics[width=0.55\textwidth]{./eps/9.eps}}
+\caption{Failed job ratio in Google trace}
+\label{Fig:FailedRation}
+\end{figure}
+
+\subsubsection{Waste of Google trace resources}
+In Google trace, there is a class of tasks that are always in a commit, schedule, kill loop, and that cannot be executed due to a lack of runtime conditions or other factors. For example, the task whose job id is 4121195473 has been executed for a whole 29 days (the time span of Google trace observation) and 114 machines have been changed for execution, but the task is still not successfully completed. Another example is the task execution status in job 515042969. These tasks (in job 515042969) have been killed more than 2.2 million times in total, but they are always in the cycle of submission, scheduling and execution, and consume machine resources. Obviously, the scheduling algorithm of Google trace does not pay attention to this situation, resulting in a serious waste of resources. Based on the statistics of task execution events and task resource consumption, this paper found that the jobs in the first 1000 times of being killed consumed about 19\% CPU resources and 11\% memory resources, yet none of these jobs were successfully executed within 29 days. If the scheduling of Google trace can focus on this kind of tasks, break the cycle of constantly submitting scheduling execution, and wait until the resources on which these tasks depend are ready, it will surely greatly improve the performance of the system.
+
+{\bfseries Finding \stepcounter{Findingcounter}\theFindingcounter: The scheduling algorithm of Google trace has obvious resource waste.}
+
+\section{Conclusion}\label{sec:Conclusion}
+In this paper we conducted a comparative empirical Study on Google trace and Ali2018 from a multi-view perspective.
+To the best of our knowledge, we are the first to perform a comparative empirical study on Google trace and Ali2018. Our multifaceted analysis and new findings not only reveal insights that we believe are useful for system designers, IT practitioners and users  but also promote more  new researches  on big trace data comparative analysis in large-scale clusters.
+
+\bibliographystyle{IEEEtran}       % APS-like style for physics
+\bibliography{mybib}   % name your BibTeX data base
+
+\end{document}
